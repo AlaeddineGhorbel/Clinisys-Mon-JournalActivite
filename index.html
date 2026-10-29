@@ -18,8 +18,8 @@
  <div class="brand"><div class="logo">C</div><div><strong>CliniSys</strong><small>Mon Journal d’Activité</small></div></div>
  <div class="navlabel">Espace de travail</div>
  <nav class="nav">
-  <button class="active" data-view="planning"><span class="ico">▦</span>Planning</button>
-  <button data-view="journal"><span class="ico">◷</span>Journal d’activité</button>
+  <button data-view="planning"><span class="ico">▦</span>Planning</button>
+  <button class="active" data-view="journal"><span class="ico">◷</span>Journal d’activité</button>
   <button data-view="clients"><span class="ico">♙</span>Clients</button>
   <button data-view="rapports"><span class="ico">▤</span>Rapports</button>
  </nav>
@@ -76,7 +76,7 @@
 </div>
 </main>
 </div>
-<nav class="mobile-nav"><button class="active" data-view="planning"><span>▦</span>Planning</button><button data-view="journal"><span>◷</span>Journal</button><button data-view="clients"><span>♙</span>Clients</button><button data-view="rapports"><span>▤</span>Rapports</button><button id="mobileAdd"><span>＋</span>Ajouter</button></nav>
+<nav class="mobile-nav"><button data-view="planning"><span>▦</span>Planning</button><button class="active" data-view="journal"><span>◷</span>Journal</button><button data-view="clients"><span>♙</span>Clients</button><button data-view="rapports"><span>▤</span>Rapports</button><button id="mobileAdd"><span>＋</span>Ajouter</button></nav>
 <div class="toast" id="toast" role="status"></div>
 <script>
 (function(){
@@ -136,7 +136,7 @@ function renderP(){document.querySelectorAll('[data-mode]').forEach(b=>b.classLi
  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
  $('mobileAdd').addEventListener('click',()=>{view('journal');$('summary').focus();$('formSection').scrollIntoView({behavior:'smooth',block:'start'})});
  $('exportBtn').addEventListener('click',()=>{const rows=visible(),headers=['Date','Heure','Type','Client','Objet','Durée (minutes)','État','Notes'];const csv=[headers,...rows.map(a=>[a.date,a.start,a.kind,a.client,a.summary,a.duration,a.status,a.details])].map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='clinisys-journal-'+($('dayFilter').value||today())+'.csv';link.click();URL.revokeObjectURL(url);notify('Export CSV préparé.');});
- render();renderP();view('planning');
+ render();renderP();view('journal');
 })();
 </script>
 </body>
