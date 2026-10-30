@@ -235,25 +235,29 @@ function generateMonthlySuggestions(){
  const month=$('suggestMonth').value||today().slice(0,7),[yy,mm]=month.split('-').map(Number);
  if(!yy||!mm){notify('Choisis un mois valide.');return}
  const first=new Date(yy,mm-1,1,12),last=new Date(yy,mm,0,12),days=last.getDate();
+ const todayKey=today();
+ if(month<todayKey.slice(0,7)){notify('Ce mois est déjà passé : les anciennes journées ne sont pas modifiées. Choisis le mois en cours ou un mois futur.');return}
+ const startDay=month===todayKey.slice(0,7)?Number(todayKey.slice(8,10)):1,span=days-startDay+1;
  if(!clients.length){notify('Ajoute d’abord des clients dans la base.');return}
  const ordered=[...clients].sort((a,b)=>(Number(b.potential)||0)-(Number(a.potential)||0));
  let added=0,skipped=0;
  ordered.forEach(c=>{
   const score=Math.max(0,Math.min(10,Number(c.potential)||0));
   const weekly=Number(c.visits)||0;
-  const count=weekly>0?Math.max(1,Math.round(weekly*4.33)):(score>=8?4:score>=5?2:1);
+  const baseCount=weekly>0?Math.max(1,Math.round(weekly*4.33)):(score>=8?4:score>=5?2:1);const count=Math.max(1,Math.round(baseCount*span/days));
   const priority=score>=8?'Priorité élevée':score>=5?'Priorité moyenne':'Priorité normale';
   for(let i=0;i<count;i++){
-   let day=Math.min(days,Math.max(1,Math.round(1+(i+0.5)*days/count)));
+   let day=Math.min(days,Math.max(startDay,Math.round(startDay+(i+0.5)*span/count)));
    let date=new Date(yy,mm-1,day,12);
    if(date.getDay()===0)date.setDate(date.getDate()+1);
    if(date.getDay()===6)date.setDate(date.getDate()+2);
    if(date.getMonth()!==mm-1)date=new Date(yy,mm-1,days,12);
    const key=iso(date);
+   if(key<todayKey){skipped++;continue}
    const exists=plans.some(p=>p.date===key&&(p.client||'').trim().toLowerCase()===c.name.trim().toLowerCase()&&p.generatedMonthly);
    if(exists){skipped++;continue}
    const proposal={id:'auto'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),title:'Suivi client mensuel – '+c.name,client:c.name,date:key,time:'09:00',duration:60,kind:'Suivi de dossier',category:'Activité planifiée',reminder:false,reminded:false,notes:'Proposition automatique · potentiel '+score+'/10 · '+priority+'. À adapter selon les besoins et disponibilités.',status:'À faire',generatedMonthly:true,potential:score};
-   const slots=['09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00'];
+   const nowHM=new Date().toTimeString().slice(0,5);const slots=['09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00'].filter(t=>key!==todayKey||t>nowHM);
    const freeSlot=slots.find(time=>!planConflict({...proposal,time}));
    if(!freeSlot){skipped++;continue}
    proposal.time=freeSlot;plans.push(proposal);
@@ -355,7 +359,7 @@ $('pSave').onclick=()=>{let title=$('pTitle').value.trim(),date=$('pDate').value
  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.view)));
  $('mobileAdd').addEventListener('click',()=>{view('journal');openModal('activityModal')});
  $('exportBtn').addEventListener('click',()=>{const rows=visible(),headers=['Date','Heure','Type','Client','Objet','Durée (minutes)','État','Notes'];const csv=[headers,...rows.map(a=>[a.date,a.start,a.kind,a.client,a.summary,a.duration,a.status,a.details])].map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='clinisys-journal-'+($('dayFilter').value||today())+'.csv';link.click();URL.revokeObjectURL(url);notify('Export CSV préparé.');});
- render();renderP();view('journal');
+ render();renderP();view('planning');
 })();
 </script>
 </body>
