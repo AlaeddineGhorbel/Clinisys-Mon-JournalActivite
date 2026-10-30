@@ -228,7 +228,11 @@ function generateMonthlySuggestions(){
    const key=iso(date);
    const exists=plans.some(p=>p.date===key&&(p.client||'').trim().toLowerCase()===c.name.trim().toLowerCase()&&p.generatedMonthly);
    if(exists){skipped++;continue}
-   plans.push({id:'auto'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),title:'Suivi client mensuel – '+c.name,client:c.name,date:key,time:'09:00',duration:60,kind:'Suivi de dossier',category:'Activité planifiée',reminder:false,reminded:false,notes:'Proposition automatique · potentiel '+score+'/10 · '+priority+'. À adapter selon les besoins et disponibilités.',status:'À faire',generatedMonthly:true,potential:score});
+   const proposal={id:'auto'+Date.now().toString(36)+Math.random().toString(36).slice(2,7),title:'Suivi client mensuel – '+c.name,client:c.name,date:key,time:'09:00',duration:60,kind:'Suivi de dossier',category:'Activité planifiée',reminder:false,reminded:false,notes:'Proposition automatique · potentiel '+score+'/10 · '+priority+'. À adapter selon les besoins et disponibilités.',status:'À faire',generatedMonthly:true,potential:score};
+   const slots=['09:00','10:00','11:00','13:00','14:00','15:00','16:00','17:00'];
+   const freeSlot=slots.find(time=>!planConflict({...proposal,time}));
+   if(!freeSlot){skipped++;continue}
+   proposal.time=freeSlot;plans.push(proposal);
    added++;
   }
  });
