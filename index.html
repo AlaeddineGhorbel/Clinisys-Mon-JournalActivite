@@ -216,7 +216,7 @@ details.tools{margin:12px 0}details.tools>summary{cursor:pointer;font-weight:700
  }
  function resetClientForm(){ $('clientForm').reset();$('clientId').value='';$('cPotential').value='3';$('cVisitsPerWeek').value='2';$('cVisits').value='weekly';$('cVisitMode').value='visit';$('clientSave').textContent='＋ Ajouter le client';$('clientCancel').hidden=true; }
  $('clientForm').addEventListener('submit',e=>{e.preventDefault();const id=$('clientId').value,name=$('cName').value.trim();if(!name){notify('Le nom du client est obligatoire.');return}const duplicate=clients.find(c=>c.name.toLowerCase()===name.toLowerCase()&&c.id!==id);if(duplicate){notify('Ce client existe déjà. Modifie sa fiche existante.');return}const potential=Number($('cPotential').value)||3;const data={id:id||('c'+Date.now().toString(36)),name,potential,visitsPerWeek:Number($('cVisitsPerWeek').value)||({1:4,2:3,3:2,4:1}[potential]),region:$('cRegion').value.trim(),visits:0,visitFrequency:$('cVisits').value||'weekly',visitMode:$('cVisitMode').value||'visit',contact:$('cContact').value.trim(),notes:$('cNotes').value.trim(),updated:new Date().toISOString()};const previousClients=clients;if(id){clients=clients.map(c=>c.id===id?data:c)}else{clients=[...clients,data]}if(!persistClients()){clients=previousClients;return}notify(id?'Fiche client mise à jour.':'Client ajouté à la base.');resetClientForm();renderClients();render();if(clientKeepOpen){$('cName').focus()}else closeModal('clientModal');});
- $('clientCancel').addEventListener('click',resetClientForm);$('clientSaveAnother').onclick=()=>{clientKeepOpen=true;$('clientForm').requestSubmit();clientKeepOpen=false};
+ $('cPotential').addEventListener('change',()=>{$('cVisitsPerWeek').value=({1:4,2:3,3:2,4:1}[$('cPotential').value]||1)});$('clientCancel').addEventListener('click',resetClientForm);$('clientSaveAnother').onclick=()=>{clientKeepOpen=true;$('clientForm').requestSubmit();clientKeepOpen=false};
  $('clientsList').addEventListener('click',e=>{const edit=e.target.closest('[data-client-edit]'),del=e.target.closest('[data-client-delete]');if(edit){const c=clients.find(x=>x.id===edit.dataset.clientEdit);if(!c)return;$('clientId').value=c.id;$('cName').value=c.name;const legacyPotential=Number(c.potential)||3;const normalizedPotential=legacyPotential>=7?1:legacyPotential>=5?2:legacyPotential>=3?3:(legacyPotential===0?3:legacyPotential);$('cPotential').value=normalizedPotential;$('cVisitsPerWeek').value=Math.max(1,Math.min(5,Number(c.visitsPerWeek)||({1:4,2:3,3:2,4:1}[normalizedPotential])));$('cRegion').value=c.region||'';$('cVisits').value=c.visitFrequency||(Number(c.visits)>0?'weekly':'monthly');$('cVisitMode').value=c.visitMode||'visit';$('cContact').value=c.contact||'';$('cNotes').value=c.notes||'';$('clientSave').textContent='Enregistrer les modifications';$('clientCancel').hidden=false;openModal('clientModal');$('cName').focus();}else if(del){const c=clients.find(x=>x.id===del.dataset.clientDelete);if(c&&confirm('Supprimer la fiche de '+c.name+' ? Les activités historiques seront conservées.')){const previousClients=clients;clients=clients.filter(x=>x.id!==c.id);if(!persistClients()){clients=previousClients;return}render();notify('Fiche client supprimée.')}}});
  $('clientSearch').addEventListener('input',renderClients);$('potentialFilter').addEventListener('change',renderClients);
  $('activityForm').addEventListener('submit',e=>{e.preventDefault();const a={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),kind:$('kind').value,client:$('client').value.trim(),summary:$('summary').value.trim(),date:$('date').value,duration:Number($('duration').value),start:$('start').value,status:$('status').value,details:$('details').value.trim(),created:new Date().toISOString()};if(!a.summary||!a.date||!a.duration||a.duration<1){notify('Vérifie les champs obligatoires.');return}activities.push(a);if(!persist()){activities.pop();return}$('dayFilter').value=a.date;$('rangeFilter').value='day';$('search').value='';$('typeFilter').value='';e.target.reset();$('date').value=a.date;render();notify('Activité enregistrée dans ce navigateur.');if(activityKeepOpen){$('kind').value=a.kind;$('client').value=a.client;$('date').value=a.date;$('status').value=a.status;$('summary').focus()}else closeModal('activityModal');});
@@ -255,7 +255,7 @@ function generateMonthlySuggestions(){
  const ordered=[...clients].sort((a,b)=>normalizedPotential(a)-normalizedPotential(b));
  let added=0,skipped=0;
  const slots=['08:30','09:30','10:30','11:30','13:30','14:30','15:30','16:30'];
- ordered.forEach(c=>{
+ ordered.forEach((c,clientIndex)=>{
   const potential=normalizedPotential(c),visitsPerWeek=Math.max(1,Math.min(5,Number(c.visitsPerWeek)||defaults[potential]||1));
   const frequency=c.visitFrequency||'weekly',mode=c.visitMode||'visit';
   const activeWeeks=frequency==='fortnightly'?Array.from({length:weeks},(_,i)=>i).filter(i=>i%2===0):frequency==='monthly'?[Math.floor((weeks-1)/2)]:Array.from({length:weeks},(_,i)=>i);
@@ -265,7 +265,8 @@ function generateMonthlySuggestions(){
   activeWeeks.forEach(weekIndex=>{
    const count=frequency==='monthly'?1:visitsPerWeek;
    for(let j=0;j<count;j++){
-    const dayOffset=Math.min(4,Math.floor((j+0.5)*5/count));
+    const baseOffset=(clientIndex+weekIndex*2)%5;
+    const dayOffset=(baseOffset+Math.floor(j*5/count))%5;
     const key=workingDays[weekIndex*5+dayOffset];
     const exists=plans.some(p=>p.date===key&&(p.client||'').trim().toLowerCase()===c.name.trim().toLowerCase()&&p.generatedMonthly);
     if(exists){skipped++;continue}
